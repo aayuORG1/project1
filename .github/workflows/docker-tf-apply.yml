@@ -21,8 +21,7 @@ on:
         required: true
       ARM_TENANT_ID:
         required: true
-      GITHUB_TOKEN:
-        required: true
+
 
 permissions:
   id-token: write
