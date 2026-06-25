@@ -1,4 +1,4 @@
-name: "[Called] OPA Policy Evaluation"
+name: "docker-OPA-Policy"
 
 on:
   workflow_call:
