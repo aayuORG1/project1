@@ -1,4 +1,4 @@
-name: "docker-tftest"
+name: "docker-tflint"
 
 on:
   workflow_call:
