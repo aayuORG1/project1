@@ -16,7 +16,7 @@ on:
 
 jobs:
   tflint:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     container:
       image: ghcr.io/terraform-linters/tflint:latest
