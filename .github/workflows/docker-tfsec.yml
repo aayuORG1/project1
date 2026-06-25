@@ -1,4 +1,4 @@
-name: "[Called] TFSec Security Scan"
+name: "docker-tfsec"
 
 on:
   workflow_call:
