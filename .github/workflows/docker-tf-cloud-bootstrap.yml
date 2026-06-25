@@ -1,4 +1,4 @@
-name: "[Called] Terraform Cloud Bootstrap"
+name: "docker-tf-cloud-bootstrap"
 
 on:
   workflow_call:
