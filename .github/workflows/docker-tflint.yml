@@ -1,14 +1,15 @@
-name: "[Called] TFLint"
+name: "docker-tflint"
 
 on:
   workflow_call:
     inputs:
       environment:
-        description: "Target deployment environment"
+        description: "Target Environment"
         required: true
         type: string
+
       working_directory:
-        description: "Folder where .tf files exist"
+        description: "Terraform folder path"
         required: false
         default: "."
         type: string
@@ -16,6 +17,7 @@ on:
 jobs:
   tflint:
     runs-on: self-hosted
+
     container:
       image: ghcr.io/terraform-linters/tflint:latest
 
@@ -28,9 +30,13 @@ jobs:
           echo "Scanning directory: ${{ inputs.working_directory }}"
           ls -R ${{ inputs.working_directory }}
 
-      - name: TFLint Init and Run
+      - name: TFLint Run
         run: |
-          tflint --chdir=${{ inputs.working_directory }} --recursive --format compact > tflint-report.txt || true
+          tflint \
+            --chdir=${{ inputs.working_directory }} \
+            --recursive \
+            --format compact > tflint-report.txt || true
+
           echo "--- TFLint Summary ---"
           cat tflint-report.txt
 
