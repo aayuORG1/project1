@@ -1,4 +1,4 @@
-name: "[Called] Terraform Apply"
+name: "docker-tf-apply"
 
 on:
   workflow_call:
