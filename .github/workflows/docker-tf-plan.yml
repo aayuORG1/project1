@@ -1,4 +1,4 @@
-name: "[Called] Terraform Plan"
+name: "docker-tf-plan"
 
 on:
   workflow_call:
