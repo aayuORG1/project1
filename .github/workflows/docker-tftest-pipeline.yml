@@ -1,4 +1,4 @@
-name: "[Called] Terraform Test"
+name: "docker-tftest-pipeline"
 
 on:
   workflow_call:
