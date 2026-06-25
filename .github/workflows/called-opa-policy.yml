@@ -1,4 +1,4 @@
-name: "docker-OPA-Policy"
+name: "[Called] OPA Policy Evaluation"
 
 on:
   workflow_call:
@@ -12,7 +12,9 @@ on:
         required: false
         default: "."
         type: string
-
+    secrets:
+      GITHUB_TOKEN:
+        required: true
 
 permissions:
   actions: read
