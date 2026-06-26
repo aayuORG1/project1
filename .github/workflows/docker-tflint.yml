@@ -6,13 +6,17 @@ on:
       environment:
         description: "Target Environment"
         required: true
-        type: string
+        type: string           
 
       working_directory:
         description: "Terraform folder path"
         required: false
         default: "."
         type: string
+        
+    secrets:
+      personal_access_token:
+        required: true
         
 permissions:
   id-token: write
