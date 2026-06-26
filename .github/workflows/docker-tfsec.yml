@@ -74,5 +74,5 @@ jobs:
             head -n 50 tfsec-report.json >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ No report generated" >> $GITHUB_STEP_SUMMARY
+            echo " No report generated" >> $GITHUB_STEP_SUMMARY
           fi
