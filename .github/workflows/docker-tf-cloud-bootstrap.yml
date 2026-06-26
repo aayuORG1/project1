@@ -4,14 +4,23 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: "Target Environment"
+        description: "Target deployment environment"
         required: true
-        type: string           
+        type: string
       working_directory:
-        description: "Terraform folder path"
+        description: "Terraform working directory"
         required: false
         default: "."
         type: string
+    secrets:
+      TF_API_TOKEN:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_CLIENT_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
         
     secrets:
       personal_access_token:
