@@ -52,9 +52,9 @@ jobs:
         run: |
           git config --global --add safe.directory '*'
 
-          RUN_ID=$(gh run list --workflow "docker-init.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          RUN_ID=$(gh run list --workflow "docker-tf-plan.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
           if [ -z "$RUN_ID" ]; then
-            echo "Error: No successful run found for 'docker-init.yml'."
+            echo "Error: No successful run found for 'docker-tf-plan.yml'."
             exit 1
           fi
           echo "Using Run ID: $RUN_ID"
