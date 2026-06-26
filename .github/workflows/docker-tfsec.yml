@@ -25,7 +25,7 @@ on:
 jobs:
   tfsec:
     name: "TFSec Scan (${{ inputs.environment }})"
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Fix Runner Workspace Permissions
