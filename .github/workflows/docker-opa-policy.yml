@@ -33,33 +33,20 @@ jobs:
     container:
       image: ubuntu:22.04
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Artifact ko download karo (jo pehle kisi aur workflow ne upload kiya hoga)
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-json-${{ inputs.environment }}
+          path: .
+
       - name: Install Tools inside Container
         run: |
           apt-get update
           apt-get install -y curl jq unzip git
-
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Fetch Artifact via REST API
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        run: |
-          echo "Fetching latest successful run for docker-tf-plan.yml..."
-          RUNS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$REPO/actions/workflows/docker-tf-plan.yml/runs?status=success&per_page=1)
-          RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
-          echo "Using Run ID: $RUN_ID"
-
-          ARTIFACTS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts)
-          URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[0].archive_download_url')
-
-          echo "Downloading artifact..."
-          curl -L -H "Authorization: Bearer $GH_TOKEN" -o artifact.zip "$URL"
-          unzip artifact.zip
-          ls -l
 
       - name: Install OPA inside Container
         run: |
