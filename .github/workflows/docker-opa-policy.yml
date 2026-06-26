@@ -31,45 +31,44 @@ jobs:
   opa:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:latest
+      image: ubuntu:22.04
     steps:
-      - name: Install Packages and GitHub CLI
+      - name: Install Tools inside Container
         run: |
           apt-get update
-          apt-get install -y curl tar git
-          curl -sSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          apt-get update
-          apt-get install -y gh jq
+          apt-get install -y curl jq unzip git
 
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Fetch Artifact and Evaluate
+      - name: Fetch Artifact via REST API
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          git config --global --add safe.directory '*'
-
-          RUN_ID=$(gh run list --workflow "docker-tf-plan.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          if [ -z "$RUN_ID" ]; then
-            echo "Error: No successful run found for 'docker-tf-plan.yml'."
-            exit 1
-          fi
+          echo "Fetching latest successful run for docker-tf-plan.yml..."
+          RUNS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$REPO/actions/workflows/docker-tf-plan.yml/runs?status=success&per_page=1)
+          RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
           echo "Using Run ID: $RUN_ID"
 
-          gh run download $RUN_ID --name "tfplan-json-${{ inputs.environment }}"
+          ARTIFACTS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts)
+          URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[0].archive_download_url')
 
+          echo "Downloading artifact..."
+          curl -L -H "Authorization: Bearer $GH_TOKEN" -o artifact.zip "$URL"
+          unzip artifact.zip
+          ls -l
+
+      - name: Install OPA inside Container
+        run: |
           curl -sL -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
           chmod +x opa
           mv opa /usr/local/bin/
 
-          echo "------------------------------------------"
-          echo "OPA Scanning Directory: $(pwd)"
-          echo "Scanning File: $(ls -l tfplan.json)"
-          echo "Policy Directory: ./policies"
-          echo "------------------------------------------"
+      - name: Run OPA Evaluation
+        run: |
           echo "===== OPA VERSION ====="
           opa version
 
@@ -84,18 +83,12 @@ jobs:
           echo "JSON OK"
 
           echo "===== RUNNING OPA ====="
-          set +e
-          echo "Running OPA Evaluation..."
           OPA_JSON=$(opa eval -f json -d policies -i tfplan.json "data")
-          echo "$OPA_JSON"
-          set -e
-
           echo "$OPA_JSON" | jq '.'
 
           echo "# OPA Evaluation Results" >> $GITHUB_STEP_SUMMARY
           echo "### Scan Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Scan Path:** $(pwd)" >> $GITHUB_STEP_SUMMARY
           echo "- **Target File:** tfplan.json" >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY
           echo "$OPA_JSON" | jq '.' >> $GITHUB_STEP_SUMMARY
