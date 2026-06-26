@@ -31,7 +31,7 @@ permissions:
 jobs:
   terraform-apply:
     name: "Terraform Apply"
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
 
     container:
