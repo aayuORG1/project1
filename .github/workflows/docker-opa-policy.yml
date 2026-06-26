@@ -7,9 +7,13 @@ on:
         description: "Target Environment"
         required: true
         type: string
+      working_directory:
+        description: "Terraform folder path"
+        required: false
+        default: "."
+        type: string
+        
     secrets:
-      personal_access_token:
-        required: true
       ARM_CLIENT_ID:
         required: true
       ARM_TENANT_ID:
