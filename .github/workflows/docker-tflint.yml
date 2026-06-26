@@ -20,19 +20,8 @@ on:
       ARM_CLIENT_ID:
         required: true
       ARM_TENANT_ID:
-        required: true
-        
-    secrets:
-      personal_access_token:
-        required: true
-      ARM_CLIENT_ID:
-        required: true
-      ARM_TENANT_ID:
-        required: true
-      ARM_SUBSCRIPTION_ID:
-        required: true
-      TF_API_TOKEN:
         required: true       
+      
         
 permissions:
   id-token: write
