@@ -60,10 +60,4 @@ jobs:
           echo "--- TFLint Summary ---"
           cat tflint-report.txt
 
-      - name: Upload TFLint Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tflint-report-${{ inputs.environment }}
-          path: tflint-report.txt
-          if-no-files-found: error
+      
