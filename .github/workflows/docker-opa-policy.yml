@@ -77,6 +77,20 @@ jobs:
           echo "### Scan Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target File:** tfplan.json" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Policies Used" >> $GITHUB_STEP_SUMMARY
+          find policies -type f | while read policy; do
+            pkg=$(grep "^package" "$policy" | head -n1)
+            echo "- **Policy File:** $policy" >> $GITHUB_STEP_SUMMARY
+            echo "  - Package: $pkg" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "### Resources Evaluated" >> $GITHUB_STEP_SUMMARY
+          jq -r '.resource_changes[].type' tfplan.json | sort -u | while read resource; do
+            echo "- Resource Type: $resource" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "### OPA Output" >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY
           echo "$OPA_JSON" | jq '.' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
