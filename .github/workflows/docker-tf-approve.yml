@@ -1,0 +1,17 @@
+name: "[Called] Manual Validation"
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: string
+
+jobs:
+  manual-approval:
+    runs-on: ubuntu-latest
+    environment: manual-approval
+    steps:
+      - name: Wait for Approval
+        run: echo "Manual approval received, proceeding with deployment."
