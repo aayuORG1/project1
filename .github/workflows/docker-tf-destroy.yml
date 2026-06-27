@@ -43,4 +43,4 @@ jobs:
         
       - name: Terraform Destroy
         run: |
-          terraform destroy -var="environment=${{ inputs.environment }}" -auto-approve
+          terraform destroy -var-file="tests/terraform.tfvars"
