@@ -4,11 +4,11 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: "Target environment"
+        description: "Target deployment environment"
         required: true
         type: string
       working_directory:
-        description: "Terraform folder"
+        description: "Terraform working directory"
         required: false
         default: "."
         type: string
@@ -22,22 +22,41 @@ on:
       ARM_TENANT_ID:
         required: true
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   terraform-destroy:
+    name: "Terraform destroy"
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
     container:
       image: hashicorp/terraform:1.13.0
+
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
+
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
-      ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      TF_WORKSPACE: statefile-${{ inputs.environment }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_USE_OIDC: "true"
+
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-json-${{ inputs.environment }}
+          path: ${{ inputs.working_directory }}
+
       - name: Terraform Init
         run: terraform init -input=false
         
