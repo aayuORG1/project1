@@ -33,7 +33,7 @@ jobs:
     environment: ${{ inputs.environment }}
 
     container:
-      image: hashicorp/terraform:1.9.0
+      image: hashicorp/terraform:1.13.0
 
     defaults:
       run:
