@@ -7,7 +7,16 @@ on:
         description: "Target environment"
         required: true
         type: string
-
+        
+    secrets:
+      TF_API_TOKEN:
+        required: false
+      ARM_SUBSCRIPTION_ID:
+        required: false
+      ARM_CLIENT_ID:
+        required: false
+      ARM_TENANT_ID:
+        required: false
 jobs:
   manual-approval:
     runs-on: ubuntu-latest
