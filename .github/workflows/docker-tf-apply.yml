@@ -21,8 +21,7 @@ on:
         required: true
       ARM_TENANT_ID:
         required: true
-      GITHUB_TOKEN:
-        required: true
+      # GITHUB_TOKEN yahan se hata diya gaya hai
 
 permissions:
   id-token: write
@@ -50,61 +49,28 @@ jobs:
       ARM_USE_OIDC: "true"
 
     steps:
-      - name: Install Required Tools
-        run: |
-          apt-get update
-          apt-get install -y git curl jq bash unzip wget tar
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-            | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-            | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          apt-get update
-          apt-get install -y gh
-
-      - name: Install Terraform
-        run: |
-          TERRAFORM_VERSION="1.13.0"
-          wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-          unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-          mv terraform /usr/local/bin/
-          terraform version
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Fetch Artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Naya Step: Download Artifact (CLI ke bajaye action use karna best hai)
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-json-${{ inputs.environment }}
+          path: .
+
+      - name: Install Required Tools
         run: |
-          git config --global --add safe.directory '*'
-
-          RUN_ID=$(gh run list \
-            --workflow "docker-init.yml" \
-            --status success \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-
-          if [ -z "$RUN_ID" ]; then
-            echo "ERROR: No successful run found"
-            exit 1
-          fi
-          echo "Using Run ID: $RUN_ID"
-          gh run download $RUN_ID \
-            --name "tfplan-json-${{ inputs.environment }}"
+          apt-get update
+          apt-get install -y terraform 
 
       - name: Terraform Init
-        working-directory: ${{ inputs.working_directory }}
         run: terraform init -input=false
 
       - name: Terraform Apply
-        working-directory: ${{ inputs.working_directory }}
         run: terraform apply -auto-approve
 
       - name: Job Summary
         if: always()
         run: |
           echo "# Terraform Apply Completed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Directory:** ${{ inputs.working_directory }}" >> $GITHUB_STEP_SUMMARY
