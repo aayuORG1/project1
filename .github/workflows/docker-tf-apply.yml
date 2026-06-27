@@ -21,7 +21,6 @@ on:
         required: true
       ARM_TENANT_ID:
         required: true
-      # GITHUB_TOKEN yahan se hata diya gaya hai
 
 permissions:
   id-token: write
@@ -32,9 +31,9 @@ jobs:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
-
+    
     container:
-      image: ubuntu:latest
+      image: hashicorp/terraform:1.13.0
 
     defaults:
       run:
@@ -52,17 +51,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Naya Step: Download Artifact (CLI ke bajaye action use karna best hai)
       - name: Download tfplan artifact
         uses: actions/download-artifact@v4
         with:
           name: tfplan-json-${{ inputs.environment }}
-          path: .
-
-      - name: Install Required Tools
-        run: |
-          apt-get update
-          apt-get install -y terraform 
+          path: ${{ inputs.working_directory }}
 
       - name: Terraform Init
         run: terraform init -input=false
@@ -74,3 +67,5 @@ jobs:
         if: always()
         run: |
           echo "# Terraform Apply Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
