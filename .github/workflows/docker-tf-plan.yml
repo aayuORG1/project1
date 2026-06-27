@@ -64,7 +64,7 @@ jobs:
         run: |
           ls -R         
           terraform plan -input=false \
-            -var-file="${{ github.workspace }}/environments/${{ inputs.environment }}.tfvars" \
+            -var-file="tests/${{ inputs.environment }}.tfvars" \
             -out=tfplan -no-color | tee plan_summary.txt        
           terraform show -json tfplan > tfplan.json
 
