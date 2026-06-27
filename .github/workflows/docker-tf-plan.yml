@@ -54,16 +54,15 @@ jobs:
       - name: Clean Terraform Cache
         run: rm -rf .terraform .terraform.lock.hcl
 
-      - name: Terraform Init
+      - name: Terraform Init 
         run: terraform init -input=false
 
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Plan
-        run: |
-          terraform plan -input=false -out=tfplan -no-color > plan_summary.txt
-          terraform show -json tfplan > tfplan.json
+      - name: Terraform Plan        
+        run: terraform plan -input=false -var-file=environments/${{ inputs.environment }}.tfvars -out=tfplan
+         terraform show -json tfplan > tfplan.json
 
       - name: Generate Plan Summary
         if: always()
