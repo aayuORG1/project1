@@ -61,7 +61,8 @@ jobs:
         run: terraform init -input=false
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        working-directory: ${{ inputs.working_directory }}
+        run: terraform apply -auto-approve -var-file="tests/terraform.tfvars"
 
       - name: Job Summary
         if: always()
