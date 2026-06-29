@@ -45,11 +45,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Debug Folder
-        run: |
-          echo "Scanning directory: ${{ inputs.working_directory }}"
-          ls -R ${{ inputs.working_directory }}
-
       - name: TFLint Run
         run: |
           tflint \
