@@ -1,4 +1,4 @@
-name: "Path and Environment Resolution Pipeline"
+name: "Infrastructure Pipeline"
 
 on:
   workflow_call:
@@ -16,29 +16,19 @@ on:
         type: boolean
         default: false
 
-    outputs:
-      resolved_env:
-        value: ${{ jobs.setup-env.outputs.resolved_env }}
-      resolved_dir:
-        value: ${{ jobs.setup-env.outputs.resolved_dir }}
-      skip_apply:
-        value: ${{ jobs.setup-env.outputs.skip_apply }}
-
 permissions:
   id-token: write
   contents: read
 
 jobs:
-
   setup-env:
-    name: Environment & Path Evaluation
+    name: "Setup & Validate"
     runs-on: [self-hosted, linux]
-
     outputs:
-      resolved_env: ${{ steps.resolver.outputs.resolved_env }}
-      resolved_dir: ${{ steps.resolver.outputs.resolved_dir }}
-      skip_apply: ${{ steps.resolver.outputs.skip_apply }}
-
+      resolved_env: ${{ steps.resolver.outputs.env }}
+      resolved_dir: ${{ steps.resolver.outputs.dir }}
+      skip_apply: ${{ steps.resolver.outputs.skip }}
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,91 +38,33 @@ jobs:
       - id: resolver
         shell: bash
         run: |
-          set -euo pipefail
+          # --- 1. SET INPUTS ---
+          ENV="${{ inputs.target_env }}"
+          DIR="${{ inputs.working_dir }}"
+          SKIP="${{ inputs.just_plan }}"
 
-          DIR="."
-          SKIP_APPLY="false"
-
-          EVENT_NAME="${{ github.event_name }}"
-
-
-          # 1. Manual trigger (workflow_call input pass)
-          if [[ -n "${{ inputs.target_env }}" ]]; then
-            ENVIRONMENT="${{ inputs.target_env }}"
-            DIR="${{ inputs.working_dir }}"
-            SKIP_APPLY="${{ inputs.just_plan }}"
-
-            case "$ENVIRONMENT" in
-              production|development|sit|uat) ;;
-              *)
-                echo "::error::Invalid environment: $ENVIRONMENT"
-                exit 1
-                ;;
+          if [[ -z "$ENV" ]]; then
+            BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+            case "$BRANCH" in
+              main)               ENV="uat" ;;         # Main abhi UAT hai
+              test|sit)           ENV="sit" ;;
+              dev|develop|feat/*) ENV="development" ;;
+              *) echo "::error::Unsupported branch: $BRANCH"; exit 1 ;;
             esac
-
-          # 2. Auto branch-based
-          else
-            if [[ "$EVENT_NAME" == "pull_request" ]]; then
-              TARGET_BRANCH="${{ github.base_ref }}"
-            else
-              TARGET_BRANCH="${{ github.ref_name }}"
-            fi
-
-            TARGET_BRANCH=$(echo "$TARGET_BRANCH" | tr '[:upper:]' '[:lower:]')
-
-            case "$TARGET_BRANCH" in
-              main) ENVIRONMENT="production" ;;
-              dev) ENVIRONMENT="development" ;;
-              test) ENVIRONMENT="sit" ;;
-              feature/*|bugfix/*) ENVIRONMENT="development" ;;
-              hotfix/*) ENVIRONMENT="uat" ;;
-              *)
-                echo "::error::Unsupported branch: $TARGET_BRANCH"
-                exit 1
-                ;;
-            esac
-            # Safe diff logic
-            git fetch origin "${{ github.base_ref || 'main' }}" || true
-
-            if [[ "$EVENT_NAME" == "pull_request" ]]; then
-              BASE="origin/${{ github.base_ref }}"
-              HEAD="HEAD"
-            else
-              BASE="${{ github.event.before }}"
-              HEAD="${{ github.sha }}"
-            fi
-
-            if [[ "$BASE" == "0000000000000000000000000000000000000000" ]]; then
-              BASE="HEAD~1"
-            fi
-
-            CHANGED=$(git diff --name-only "$BASE" "$HEAD" || true)
-
-            DIRS=$(echo "$CHANGED" \
-              | grep "/" \
-              | grep -v "^.github/" \
-              | grep -v "\.md$" \
-              | cut -d/ -f1 \
-              | sort -u)
-
-            COUNT=$(echo "$DIRS" | sed '/^$/d' | wc -l)
-
-            if [[ "$COUNT" -eq 1 ]]; then
-              DIR=$(echo "$DIRS" | head -n1)
-
-            elif [[ "$COUNT" -gt 1 ]]; then
-              echo "::error::Multiple deployment directories changed:"
-              echo "$DIRS"
-              exit 1
-
-            else
-              echo "::error::No deployable directory detected"
-              exit 1
-            fi
           fi
+          if [[ "$DIR" == "." ]]; then
+            # Sirf 'child-modules/' folder ke andar ke changes dekho
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} ${{ github.sha }})          
+            DIR=$(echo "$CHANGED_FILES" | grep '^child-modules/' | cut -d/ -f1-2 | head -n1)
+            
+            if [[ -z "$DIR" ]]; then
+              echo "::error::No changes detected in child-modules/"
+              exit 1
+            fi
+          fi         
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"          
+          echo "Pipeline Ready -> ENV: $ENV | DIR: $DIR | SKIP: $SKIP"
 
-          echo "resolved_env=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
-          echo "resolved_dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "skip_apply=$SKIP_APPLY" >> "$GITHUB_OUTPUT"
-
-          echo "ENV=$ENVIRONMENT | DIR=$DIR | SKIP=$SKIP_APPLY"
+  
