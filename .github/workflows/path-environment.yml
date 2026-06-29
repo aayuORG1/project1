@@ -46,7 +46,7 @@ jobs:
           if [[ -z "$ENV" ]]; then
             BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | tr '[:upper:]' '[:lower:]')
             case "$BRANCH" in
-              main)               ENV="uat" ;;         # Main abhi UAT hai
+              main)               ENV="production" ;;         
               test|sit)           ENV="sit" ;;
               dev|develop|feat/*) ENV="development" ;;
               *) echo "::error::Unsupported branch: $BRANCH"; exit 1 ;;
