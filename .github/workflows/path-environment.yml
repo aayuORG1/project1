@@ -55,9 +55,8 @@ jobs:
 
           EVENT_NAME="${{ github.event_name }}"
 
-          # -------------------------
+
           # 1. Manual trigger (workflow_call input pass)
-          # -------------------------
           if [[ -n "${{ inputs.target_env }}" ]]; then
             ENVIRONMENT="${{ inputs.target_env }}"
             DIR="${{ inputs.working_dir }}"
@@ -71,9 +70,7 @@ jobs:
                 ;;
             esac
 
-          # -------------------------
           # 2. Auto branch-based
-          # -------------------------
           else
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
               TARGET_BRANCH="${{ github.base_ref }}"
@@ -94,10 +91,7 @@ jobs:
                 exit 1
                 ;;
             esac
-
-            # -------------------------
             # Safe diff logic
-            # -------------------------
             git fetch origin "${{ github.base_ref || 'main' }}" || true
 
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
