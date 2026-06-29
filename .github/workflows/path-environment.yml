@@ -67,20 +67,3 @@ jobs:
             echo "::error::Invalid Environment/Branch combination: Branch '$BRANCH' cannot deploy to '$ENV'."
             exit 1
           fi
-
-          # --- 4. WORKING DIRECTORY LOGIC ---
-          if [[ "$DIR" == "." ]]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} ${{ github.sha }})         
-            DIR=$(echo "$CHANGED_FILES" | grep '^child-modules/' | cut -d/ -f1-2 | head -n1)
-            
-            if [[ -z "$DIR" ]]; then
-              echo "::error::No changes detected in child-modules/ folder."
-              exit 1
-            fi
-          fi
-
-          # --- 5. OUTPUTS ---
-          echo "env=$ENV" >> "$GITHUB_OUTPUT"
-          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
-          echo "Pipeline Validated -> ENV: $ENV | DIR: $DIR | SKIP: $SKIP"
