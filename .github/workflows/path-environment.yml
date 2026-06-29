@@ -42,29 +42,45 @@ jobs:
           ENV="${{ inputs.target_env }}"
           DIR="${{ inputs.working_dir }}"
           SKIP="${{ inputs.just_plan }}"
+          BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | tr '[:upper:]' '[:lower:]')
 
+          # --- 2. DEFAULT MAPPING (Agar ENV blank ho) ---
           if [[ -z "$ENV" ]]; then
-            BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | tr '[:upper:]' '[:lower:]')
             case "$BRANCH" in
-              main)               ENV="production" ;;         
-              test|sit)           ENV="sit" ;;
-              dev|develop|feat/*) ENV="development" ;;
-              *) echo "::error::Unsupported branch: $BRANCH"; exit 1 ;;
+              main)              ENV="production" ;;
+              dev|develop)       ENV="development" ;;
+              feat/*)            ENV="sit" ;;
             esac
           fi
+
+          # --- 3. STRICT VALIDATION (Match nahi hua toh FAIL) ---
+          VALID=false
+          if [[ "$BRANCH" == "main" && "$ENV" == "production" ]]; then
+            VALID=true
+          elif [[ "$BRANCH" =~ ^(dev|develop)$ && "$ENV" == "development" ]]; then
+            VALID=true
+          elif [[ "$BRANCH" == feat/* && "$ENV" == "sit" ]]; then
+            VALID=true
+          fi
+
+          if [[ "$VALID" == false ]]; then
+            echo "::error::Invalid Environment/Branch combination: Branch '$BRANCH' cannot deploy to '$ENV'."
+            exit 1
+          fi
+
+          # --- 4. WORKING DIRECTORY LOGIC ---
           if [[ "$DIR" == "." ]]; then
-            # Sirf 'child-modules/' folder ke andar ke changes dekho
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} ${{ github.sha }})          
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} ${{ github.sha }})         
             DIR=$(echo "$CHANGED_FILES" | grep '^child-modules/' | cut -d/ -f1-2 | head -n1)
             
             if [[ -z "$DIR" ]]; then
-              echo "::error::No changes detected in child-modules/"
+              echo "::error::No changes detected in child-modules/ folder."
               exit 1
             fi
-          fi         
+          fi
+
+          # --- 5. OUTPUTS ---
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"          
-          echo "Pipeline Ready -> ENV: $ENV | DIR: $DIR | SKIP: $SKIP"
-
-  
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          echo "Pipeline Validated -> ENV: $ENV | DIR: $DIR | SKIP: $SKIP"
