@@ -51,8 +51,7 @@ jobs:
             --chdir=${{ inputs.working_directory }} \
             --recursive \
             --format compact > tflint-report.txt || true
-
           echo "--- TFLint Summary ---"
-          cat tflint-report.txt
+
 
       
