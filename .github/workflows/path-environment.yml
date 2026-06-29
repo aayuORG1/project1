@@ -1,0 +1,140 @@
+name: "Path and Environment Resolution Pipeline"
+
+on:
+  push:
+    branches: [ "main", "dev", "test", "feature/**" ]
+
+  pull_request:
+    branches: [ "main", "dev", "test" ]
+
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Select Environment to Deploy Manually"
+        required: true
+        default: "development"
+        type: choice
+        options:
+          - development
+          - sit
+          - uat
+          - production
+
+      working_dir:
+        description: "Select Working Directory / Component"
+        required: true
+        default: "."
+        type: string
+
+      just_plan:
+        description: "Only run plan (no apply)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+
+  setup-env:
+    name: Environment & Path Evaluation
+    runs-on: [self-hosted, linux]
+
+    outputs:
+      resolved_env: ${{ steps.resolver.outputs.resolved_env }}
+      resolved_dir: ${{ steps.resolver.outputs.resolved_dir }}
+      skip_apply: ${{ steps.resolver.outputs.skip_apply }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - id: resolver
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="."
+          SKIP_APPLY="false"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENVIRONMENT="${{ inputs.target_env }}"
+            DIR="${{ inputs.working_dir }}"
+            SKIP_APPLY="${{ inputs.just_plan }}"
+
+            case "$ENVIRONMENT" in
+              production|development|sit|uat) ;;
+              *)
+                echo "::error::Invalid environment: $ENVIRONMENT"
+                exit 1
+                ;;
+            esac
+          else
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              TARGET_BRANCH="${{ github.base_ref }}"
+            else
+              TARGET_BRANCH="${{ github.ref_name }}"
+            fi
+            TARGET_BRANCH=$(echo "$TARGET_BRANCH" | tr '[:upper:]' '[:lower:]')
+
+            case "$TARGET_BRANCH" in
+              main)
+                ENVIRONMENT="production"
+                ;;
+              dev)
+                ENVIRONMENT="development"
+                ;;
+              test)
+                ENVIRONMENT="sit"
+                ;;
+              feature/*|bugfix/*|hotfix/*)
+                ENVIRONMENT="development"
+                ;;
+              *)
+                echo "::error::Unsupported branch: $TARGET_BRANCH"
+                exit 1
+                ;;
+            esac
+
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.sha }}"
+
+            if [[ -n "$BEFORE" && "$BEFORE" != "00" ]]; then
+              CHANGED=$(git diff --name-only "$BEFORE" "$AFTER")
+            else
+              CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
+            fi
+
+            DIRS=$(echo "$CHANGED" \
+              | grep "/" \
+              | grep -v "^.github/" \
+              | grep -v "\.md$" \
+              | cut -d/ -f1 \
+              | sort -u)
+
+            COUNT=$(echo "$DIRS" | sed '/^$/d' | wc -l)
+
+            if [[ "$COUNT" -eq 1 ]]; then
+              DIR=$(echo "$DIRS" | head -n1)
+            elif [[ "$COUNT" -gt 1 ]]; then
+              echo "::error::Multiple deployment directories changed:"
+              echo "$DIRS"
+              exit 1
+            else
+              echo "::warning::No deployment directory detected. Using explicit input or aborting."
+              DIR="${{ inputs.working_dir }}"
+            fi
+          fi
+          echo "resolved_env=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
+          echo "resolved_dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "skip_apply=$SKIP_APPLY" >> "$GITHUB_OUTPUT"
+
+          echo "=============================="
+          echo "Environment : $ENVIRONMENT"
+          echo "Directory   : $DIR"
+          echo "Skip Apply  : $SKIP_APPLY"
+          echo "=============================="
