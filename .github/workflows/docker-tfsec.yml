@@ -23,29 +23,14 @@ on:
         required: true
 
 jobs:
-  tfsec:
-    name: "TFSec Scan (${{ inputs.environment }})"
+  trivy-scan:
     runs-on: ubuntu-latest
-
+    container:
+      image: aquasec/trivy:0.55.0
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          clean: false
 
-      - name: Debug Workspace
+      - name: Run Scan and Show Summary
         run: |
-          echo "Scanning directory: ${{ inputs.working_directory }}"
-          ls -R "${{ inputs.working_directory }}"
-
-      - name: Run TFSec Scan (Container)
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/src \
-            aquasec/tfsec:v1.28 \
-            /src/${{ inputs.working_directory }} \
-            --format json \
-            --soft-fail \
-            --out /tmp/tfsec-report.json
-
-
+          trivy fs --severity HIGH,CRITICAL --format table /__w/project2/project2/
