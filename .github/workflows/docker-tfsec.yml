@@ -30,7 +30,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+        
+      - name: List Files for Debug
+        run: ls -R /__w/project2/project2/
+        
       - name: Run Scan and Show Summary
         run: |
           run: |
