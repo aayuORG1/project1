@@ -34,3 +34,7 @@ jobs:
       - name: Run Scan and Show Summary
         run: |
           trivy fs --severity HIGH,CRITICAL --format table /__w/project2/project2/
+          echo "### Trivy Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
