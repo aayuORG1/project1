@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/terraform-linters/tflint:latest
+      image: ghcr.io/terraform-linters/tflint:v0.54.0
 
     steps:
       - name: Checkout Repository
